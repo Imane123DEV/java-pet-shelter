@@ -2,6 +2,7 @@ package shelter.manager;
 
 import shelter.model.Animal;
 import shelter.exceptions.PetRanAwayException;
+import shelter.exceptions.InvalidPetOperationException;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -24,12 +25,12 @@ public class ShelterManager {
     // Ajouter un animal :
 
     // Ajoute un animal dans le refuge si son ID n'existe pas déjà
-    public void addPet(Animal animal) {
+    public void addPet(Animal animal) throws InvalidPetOperationException {
         if (animal == null) {
-            throw new IllegalArgumentException("Impossible d'ajouter un animal null.");
+            throw new InvalidPetOperationException("Impossible d'ajouter un animal null.");
         }
         if (animalById.containsKey(animal.getId())) {
-            throw new IllegalArgumentException("Un animal avec l'ID " + animal.getId() + " existe déjà dans le refuge.");
+            throw new InvalidPetOperationException("Un animal avec l'ID " + animal.getId() + " existe déjà dans le refuge.");
         }
         animals.add(animal);
         animalById.put(animal.getId(), animal);
@@ -49,7 +50,7 @@ public class ShelterManager {
         System.out.println("\n--- Liste des animaux ---");
         for (Animal a : animals) {
             String adoption = a.isAdopted() ? "adopté par " + a.getAdopterName() : "non adopté";
-            System.out.println("[" + a.getId() + "] " + a.getName()+ " | " + a.getSpecies()+ " | Santé: " + a.getHealth()+ " | Faim: " + a.getHunger()+ " | Humeur: " + a.getMood()+ " | " + adoption);
+            System.out.println("[" + a.getId() + "] " + a.getName() + " | " + a.getSpecies() + " | Santé: " + a.getHealth() + " | Faim: " + a.getHunger() + " | Humeur: " + a.getMood() + " | " + adoption);
         }
         System.out.println("Total : " + animals.size() + " animal(aux)\n");
     }
@@ -72,7 +73,7 @@ public class ShelterManager {
             System.out.println("Aucun animal disponible à l'adoption pour le moment.");
             return;
         }
-        System.out.println("--- Animaux disponibles à l'adoption ---");
+        System.out.println("\n--- Animaux disponibles à l'adoption ---");
         for (Animal a : adoptable) {
             System.out.println("[" + a.getId() + "] " + a.getName() + " — " + a.getDescription());
         }
@@ -201,15 +202,13 @@ public class ShelterManager {
     }
 
     // Adopte un animal au nom d'une personne (vérifie d'abord qu'il est disponible)
-    public void adoptPet(int id, String adopterName) {
+    public void adoptPet(int id, String adopterName) throws InvalidPetOperationException {
         Animal animal = findById(id);
         if (animal == null) {
-            System.out.println("Animal ID=" + id + " introuvable.");
-            return;
+            throw new InvalidPetOperationException("Animal ID=" + id + " introuvable.");
         }
         if (!animal.isAvailableForAdoption()) {
-            System.out.println(animal.getName() + " n'est pas disponible à l'adoption (déjà adopté ou santé insuffisante).");
-            return;
+            throw new InvalidPetOperationException(animal.getName() + " n'est pas disponible à l'adoption (déjà adopté ou santé insuffisante).");
         }
         animal.adopt(adopterName);
     }
@@ -218,11 +217,10 @@ public class ShelterManager {
 
     // Supprime un animal du refuge par son ID
     // Retourne true si la suppression a réussi, false sinon
-    public boolean removePet(int id) {
+    public boolean removePet(int id) throws InvalidPetOperationException {
         Animal animal = findById(id);
         if (animal == null) {
-            System.out.println("Aucun animal avec l'ID " + id + " dans le refuge.");
-            return false;
+            throw new InvalidPetOperationException("Aucun animal avec l'ID " + id + " dans le refuge.");
         }
         removeFromCollections(animal);
         System.out.println(animal.getName() + " [ID=" + id + "] retiré(e) du refuge.");
