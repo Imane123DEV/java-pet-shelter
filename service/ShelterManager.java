@@ -1,4 +1,4 @@
-package shelter.manager;
+package shelter.service;
 
 import shelter.model.Animal;
 import shelter.exceptions.PetRanAwayException;
