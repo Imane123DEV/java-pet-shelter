@@ -22,23 +22,26 @@ public class ShelterManager {
         this.animalById = new HashMap<>();
     }
 
-    // Ajouter un animal :
+    // ── Ajouter un animal ────────────────────────────────────────────────────
 
     // Ajoute un animal dans le refuge si son ID n'existe pas déjà
     public void addPet(Animal animal) throws InvalidPetOperationException {
         if (animal == null) {
-            throw new InvalidPetOperationException("Impossible d'ajouter un animal null.");
+            throw new InvalidPetOperationException(
+                "Impossible d'ajouter un animal null.", "NULL_ANIMAL");
         }
         if (animalById.containsKey(animal.getId())) {
-            throw new InvalidPetOperationException("Un animal avec l'ID " + animal.getId() + " existe déjà dans le refuge.");
+            throw new InvalidPetOperationException(
+                "Un animal avec l'ID " + animal.getId() + " existe déjà dans le refuge.",
+                "DUPLICATE_ID");
         }
         animals.add(animal);
         animalById.put(animal.getId(), animal);
-
-        System.out.println(animal.getName() + " (" + animal.getSpecies() + ") ajouté(e) au refuge. [ID=" + animal.getId() + "]");
+        System.out.println(animal.getName() + " (" + animal.getSpecies()
+            + ") ajouté(e) au refuge. [ID=" + animal.getId() + "]");
     }
 
-    // Afficher les animaux :
+    // ── Afficher les animaux ─────────────────────────────────────────────────
 
     // Affiche tous les animaux du refuge
     public void listPets() {
@@ -46,11 +49,17 @@ public class ShelterManager {
             System.out.println("Le refuge est vide.");
             return;
         }
-
         System.out.println("\n--- Liste des animaux ---");
         for (Animal a : animals) {
-            String adoption = a.isAdopted() ? "adopté par " + a.getAdopterName() : "non adopté";
-            System.out.println("[" + a.getId() + "] " + a.getName() + " | " + a.getSpecies() + " | Santé: " + a.getHealth() + " | Faim: " + a.getHunger() + " | Humeur: " + a.getMood() + " | " + adoption);
+            String adoption = a.isAdopted()
+                ? "adopté par " + a.getAdopterName()
+                : "non adopté";
+            System.out.println("[" + a.getId() + "] " + a.getName()
+                + " | " + a.getSpecies()
+                + " | Santé: " + a.getHealth()
+                + " | Faim: "  + a.getHunger()
+                + " | Humeur: " + a.getMood()
+                + " | " + adoption);
         }
         System.out.println("Total : " + animals.size() + " animal(aux)\n");
     }
@@ -75,12 +84,13 @@ public class ShelterManager {
         }
         System.out.println("\n--- Animaux disponibles à l'adoption ---");
         for (Animal a : adoptable) {
-            System.out.println("[" + a.getId() + "] " + a.getName() + " — " + a.getDescription());
+            System.out.println("[" + a.getId() + "] " + a.getName()
+                + " — " + a.getDescription());
         }
         System.out.println();
     }
 
-    // Rechercher un animal :
+    // ── Rechercher un animal ─────────────────────────────────────────────────
 
     // Retourne l'animal correspondant à l'ID donné, ou null s'il n'existe pas
     public Animal findById(int id) {
@@ -104,33 +114,59 @@ public class ShelterManager {
     public List<Animal> getAdoptableAnimals() {
         List<Animal> result = new ArrayList<>();
         for (Animal a : animals) {
-            if (a.isAvailableForAdoption()) {
-                result.add(a);
-            }
+            if (a.isAvailableForAdoption()) result.add(a);
         }
         return result;
     }
 
-    // Modifier les stats d'un animal :
+    // ── Modifier les stats d'un animal ───────────────────────────────────────
 
-    // Nourrit un animal (réduit sa faim et améliore son humeur)
-    public void feedPet(int id) {
-        Animal animal = findById(id);
-        if (animal == null) {
-            System.out.println("Animal ID=" + id + " introuvable.");
-            return;
+    /**
+     * Nourrit un animal (réduit sa faim et améliore son humeur).
+     * try/catch/finally : on log toujours l'opération dans le finally,
+     * et on lance InvalidPetOperationException si l'animal est introuvable.
+     */
+    public void feedPet(int id) throws InvalidPetOperationException {
+        Animal animal = null;
+        try {
+            animal = findById(id);
+            if (animal == null) {
+                throw new InvalidPetOperationException(
+                    "Impossible de nourrir : aucun animal avec l'ID " + id + ".",
+                    "ANIMAL_NOT_FOUND");
+            }
+            animal.feed();
+        } catch (InvalidPetOperationException e) {
+            System.err.println("[Erreur] " + e);
+            throw e; // on relaie pour que l'appelant puisse réagir
+        } finally {
+            // Le finally s'exécute toujours, succès ou échec
+            System.out.println("[Log] Tentative de nourrissage — ID=" + id
+                + (animal != null ? " (" + animal.getName() + ")" : " (animal introuvable)"));
         }
-        animal.feed();
     }
 
-    // Soigne un animal (augmente sa santé)
-    public void healPet(int id) {
-        Animal animal = findById(id);
-        if (animal == null) {
-            System.out.println("Animal ID=" + id + " introuvable.");
-            return;
+    /**
+     * Soigne un animal (augmente sa santé).
+     * try/catch/finally + throws InvalidPetOperationException.
+     */
+    public void healPet(int id) throws InvalidPetOperationException {
+        Animal animal = null;
+        try {
+            animal = findById(id);
+            if (animal == null) {
+                throw new InvalidPetOperationException(
+                    "Impossible de soigner : aucun animal avec l'ID " + id + ".",
+                    "ANIMAL_NOT_FOUND");
+            }
+            animal.heal();
+        } catch (InvalidPetOperationException e) {
+            System.err.println("[Erreur] " + e);
+            throw e;
+        } finally {
+            System.out.println("[Log] Tentative de soin — ID=" + id
+                + (animal != null ? " (" + animal.getName() + ")" : " (animal introuvable)"));
         }
-        animal.heal();
     }
 
     // Modifie directement la valeur de santé d'un animal
@@ -169,65 +205,125 @@ public class ShelterManager {
         System.out.println("Humeur de " + animal.getName() + " : " + before + " → " + animal.getMood());
     }
 
-    // Fait jouer un animal (améliore son humeur)
-    public void playWithPet(int id) {
-        Animal animal = findById(id);
-        if (animal == null) {
-            System.out.println("Animal ID=" + id + " introuvable.");
-            return;
+    /**
+     * Fait jouer un animal (améliore son humeur).
+     * try/catch/finally + throws InvalidPetOperationException.
+     */
+    public void playWithPet(int id) throws InvalidPetOperationException {
+        Animal animal = null;
+        try {
+            animal = findById(id);
+            if (animal == null) {
+                throw new InvalidPetOperationException(
+                    "Impossible de jouer : aucun animal avec l'ID " + id + ".",
+                    "ANIMAL_NOT_FOUND");
+            }
+            animal.play();
+        } catch (InvalidPetOperationException e) {
+            System.err.println("[Erreur] " + e);
+            throw e;
+        } finally {
+            System.out.println("[Log] Tentative de jeu — ID=" + id
+                + (animal != null ? " (" + animal.getName() + ")" : " (animal introuvable)"));
         }
-        animal.play();
     }
 
-    // Avance d'un cycle de temps : met à jour l'état de chaque animal
-    // Si un animal s'enfuit (humeur trop basse), il est retiré du refuge
+    /**
+     * Avance d'un cycle de temps : met à jour l'état de chaque animal.
+     * Si un animal s'enfuit (humeur trop basse), il est retiré du refuge.
+     * try/catch conservé, finally ajouté pour le résumé du cycle.
+     */
     public void updateAllStates() {
         System.out.println("Avance d'un cycle — mise à jour de tous les animaux...");
         List<Animal> toRemove = new ArrayList<>();
+        int runawayCount = 0;
 
-        for (Animal a : animals) {
-            try {
-                a.updateState();
-            } catch (PetRanAwayException e) {
-                System.out.println("! " + e.getMessage());
-                toRemove.add(a);
+        try {
+            for (Animal a : animals) {
+                try {
+                    a.updateState();
+                } catch (PetRanAwayException e) {
+                    System.out.println("! " + e.getMessage());
+                    toRemove.add(e.getAnimal()); //on utilise getAnimal() pour être précis
+                    runawayCount++;
+                }
             }
-        }
 
-        for (Animal a : toRemove) {
-            removeFromCollections(a);
-            System.out.println(a.getName() + " [ID=" + a.getId() + "] retiré(e) du refuge.");
+            for (Animal a : toRemove) {
+                removeFromCollections(a);
+                System.out.println(a.getName() + " [ID=" + a.getId() + "] retiré(e) du refuge.");
+            }
+
+        } finally {
+            // le finally garantit que le résumé s'affiche même en cas d'erreur inattendue
+            System.out.println("Cycle terminé. Animaux restants : " + animals.size()
+                + " | Fugues ce cycle : " + runawayCount + "\n");
         }
-        System.out.println("Cycle terminé.\n");
     }
 
-    // Adopte un animal au nom d'une personne (vérifie d'abord qu'il est disponible)
+    /**
+     * Adopte un animal au nom d'une personne (vérifie d'abord qu'il est disponible).
+     * try/catch/finally ajouté autour de l'opération d'adoption.
+     */
     public void adoptPet(int id, String adopterName) throws InvalidPetOperationException {
-        Animal animal = findById(id);
-        if (animal == null) {
-            throw new InvalidPetOperationException("Animal ID=" + id + " introuvable.");
+        Animal animal = null;
+        try {
+            if (adopterName == null || adopterName.isBlank()) {
+                //validation du nom de l'adoptant
+                throw new InvalidPetOperationException(
+                    "Le nom de l'adoptant ne peut pas être vide.", "INVALID_ADOPTER_NAME");
+            }
+            animal = findById(id);
+            if (animal == null) {
+                throw new InvalidPetOperationException(
+                    "Animal ID=" + id + " introuvable.", "ANIMAL_NOT_FOUND");
+            }
+            if (!animal.isAvailableForAdoption()) {
+                throw new InvalidPetOperationException(
+                    animal.getName() + " n'est pas disponible à l'adoption "
+                    + "(déjà adopté ou santé insuffisante).", "NOT_ADOPTABLE");
+            }
+            animal.adopt(adopterName);
+
+        } catch (InvalidPetOperationException e) {
+            System.err.println("[Erreur adoption] " + e);
+            throw e;
+        } finally {
+            System.out.println("[Log] Tentative d'adoption — ID=" + id
+                + ", adoptant=" + adopterName
+                + (animal != null ? " (" + animal.getName() + ")" : " (animal introuvable)"));
         }
-        if (!animal.isAvailableForAdoption()) {
-            throw new InvalidPetOperationException(animal.getName() + " n'est pas disponible à l'adoption (déjà adopté ou santé insuffisante).");
-        }
-        animal.adopt(adopterName);
     }
 
-    // Supprimer un animal :
+    // ── Supprimer un animal ──────────────────────────────────────────────────
 
-    // Supprime un animal du refuge par son ID
-    // Retourne true si la suppression a réussi, false sinon
+    /**
+     * Supprime un animal du refuge par son ID.
+     * Retourne true si la suppression a réussi, false sinon.
+     * finally ajouté pour le log.
+     */
     public boolean removePet(int id) throws InvalidPetOperationException {
-        Animal animal = findById(id);
-        if (animal == null) {
-            throw new InvalidPetOperationException("Aucun animal avec l'ID " + id + " dans le refuge.");
+        Animal animal = null;
+        try {
+            animal = findById(id);
+            if (animal == null) {
+                throw new InvalidPetOperationException(
+                    "Aucun animal avec l'ID " + id + " dans le refuge.", "ANIMAL_NOT_FOUND");
+            }
+            removeFromCollections(animal);
+            System.out.println(animal.getName() + " [ID=" + id + "] retiré(e) du refuge.");
+            return true;
+
+        } catch (InvalidPetOperationException e) {
+            System.err.println("[Erreur suppression] " + e);
+            throw e;
+        } finally {
+            System.out.println("[Log] Tentative de suppression — ID=" + id
+                + (animal != null ? " (" + animal.getName() + ")" : " (animal introuvable)"));
         }
-        removeFromCollections(animal);
-        System.out.println(animal.getName() + " [ID=" + id + "] retiré(e) du refuge.");
-        return true;
     }
 
-    // Méthodes privées :
+    // ── Méthodes privées ─────────────────────────────────────────────────────
 
     // Retire un animal des deux collections en même temps
     private void removeFromCollections(Animal animal) {
